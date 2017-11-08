@@ -39,3 +39,7 @@ Example: sgrtab -g 3 -y 7 '33;7' -X '- 2 4 48;5;40'
 
 (1) Other than the use of `local` for function variables, it should also be
 POSIX compliant.
+
+# Screenshots
+
+![sgrtab screenshots using xterm](https://raw.githubusercontent.com/avih/auxiliary/master/images/sgrtab/sgrtab-examples.png)
