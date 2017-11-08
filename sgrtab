@@ -1,0 +1,97 @@
+#!/bin/sh
+# sgrtab - Display standard/custom table of SGR combinations (terminal colors)
+# Copyright 2017, Avi Halachmi  https://github.com/avih/sgrtab  License: MIT.
+
+if [ "$1" = '-h' ] || [ "$1" = '--help' ]; then
+    echo "Usage: $(basename "$0") [[-t] txt [-w W]] [-g g1 g2..] [-[xXyYzZ] s1 s2..] ..."
+    echo "Display standard/custom table of SGR combinations (terminal colors)."
+    echo "- The Z axis repeats each row with the different z values."
+    echo "- Default: X: 40-47 (bg colors), Y: 30-37 (fg), Z: -/1 (normal/bold)."
+    echo
+    echo "txt   : Sample text. The default is ' gYw '."
+    echo "W     : On-screen width of txt (work around locale/alignment issues)."
+    echo "g1..  : Global individual SGR modifiers added to all table cells."
+    echo "s1..  : Axis SGR sequences. Use '-' as an empty sequence."
+    echo "-[xyz]: s1 s2 ... are added to the axis. -[XYZ]: replace axis values."
+    echo "Each cell uses an SGR sequence of: [x-seq][y-seq][z-seq][g1;g2...] ."
+    echo "Example: $(basename "$0") -g 3 -y 7 '33;7' -X '- 2 4 48;5;40'"
+    echo "         > global italic (3), two extra rows (-y), four columns (-X).";
+    exit
+fi
+
+T=" gYw "
+X="- 40 41 42 43 44 45 46 47"
+Y="- 30 31 32 33 34 35 36 37"
+Z="- 1"
+G=     # global modifiers ("g1;g2...")
+W=     # on-screen text width. set if different than ${#T} e.g. maybe for UTF8
+ylen=2 # the widest y sequence, for row-headers alignment. considers ${#G} too
+zlen=2 # widest non-empty z +1, or 0 if empty (empty z headers are suppressed)
+
+# for SGR. ignore empty or -* args, combine the rest with semicolon delimiter.
+# hot function. sets seq_out rather than printing from a (slow) subshell.
+seq_set() {
+    seq_out=""; local c
+    for c in "$@"; do
+        [ "${c##-*}" ] && seq_out="$seq_out;$c"
+    done;
+    seq_out="${seq_out#;}"  # strip leading ';' from first concat
+}
+
+# from (CLI) args: possibly updates T/W/G/X/Y/Z/ylen/zlen without validations
+process_args() {
+    ylen=0; zlen=0; local state=t; local seq_out; local a
+    for a in "$@"; do
+        case "$a" in
+        -[twgxyz]) state=${a#-}; continue;;
+           -[XYZ]) state=${a#-}; eval $state=; continue;;
+        esac
+        case $state in
+            t) T="$a";;
+            w) W="$a";;
+            g) G="$G $a";;
+          x|X) X="$X $a";;
+          y|Y) Y="$Y $a";;
+          z|Z) Z="$Z $a";;
+        esac
+    done
+    seq_set $G; G="$seq_out"
+    has $X || X=-;  has $Y || Y=-;  has $Z || Z=-;  # be nice.
+    for a in $Y; do [ ${#a} -gt $ylen ] && ylen=${#a}; done
+    for a in $Z; do
+        [ "${a##-*}" ] && [ ${#a} -ge $zlen ] && zlen=$((1 + ${#a}))
+    done
+    [ "$G" ] && [ ${#G} -gt $(($ylen + $zlen - 1)) ] && ylen=$((${#G} + 1 - $zlen))
+}
+
+# args: field width, text width, fmt, args... . pad pre/post spaces if shorter
+print_center() {
+    [ $1 -le $2 ] && shift 2 && printf "$@" && return
+
+    local post=$(( ($1 - $2) / 2 ))  # post is smaller if non-even
+    local pre=$(( $1 - $post - $2 ))
+    local fmt="$3"; shift 3
+    printf "%${pre}s$fmt%${post}s" "" "$@" ""
+}
+
+has() { [ $# -gt 0 ]; }
+print_row_header() { printf " %${ylen}s%${zlen}s" "$1" "${2##-*}"; }
+
+# -- main --
+has "$@" && process_args "$@"
+[ "$W" ] || W=${#T}
+
+[ "$G" ] && printf " %$(($ylen + $zlen))s" "+$G" || print_row_header "" ""
+for x in $X; do
+    print_center $W ${#x} " %s" $x  # headers line. center narrow headers
+done; echo
+
+for y in $Y; do
+    for z in $Z; do
+        print_row_header $y $z
+        for x in $X; do
+            seq_set $x $y $z $G
+            print_center ${#x} $W " \033[%sm%s\033[m" "$seq_out" "$T"
+        done; echo
+    done
+done
