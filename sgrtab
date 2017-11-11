@@ -3,14 +3,14 @@
 # Copyright 2017, Avi Halachmi  https://github.com/avih/sgrtab  License: MIT.
 
 if [ "$1" = '-h' ] || [ "$1" = '--help' ]; then
-    echo "Usage: $(basename "$0") [[-t] txt [-w W]] [-g g1 g2..] [-[xXyYzZ] s1 s2..] ..."
+    echo "Usage: $(basename "$0") [[-g] g1 g2..] [-t txt [-w W]] [-[xXyYzZ] s1 s2..] ..."
     echo "Display standard/custom table of SGR combinations (terminal colors)."
     echo "- The Z axis repeats each row with the different z values."
     echo "- Default: X: 40-47 (bg colors), Y: 30-37 (fg), Z: -/1 (normal/bold)."
     echo
+    echo "g1..  : Global individual SGR modifiers added to all table cells."
     echo "txt   : Sample text. The default is ' gYw '."
     echo "W     : On-screen width of txt (work around locale/alignment issues)."
-    echo "g1..  : Global individual SGR modifiers added to all table cells."
     echo "s1..  : Axis SGR sequences. Use '-' as an empty sequence."
     echo "-[xyz]: s1 s2 ... are added to the axis. -[XYZ]: replace axis values."
     echo "Each cell uses an SGR sequence of: [x-seq][y-seq][z-seq][g1;g2...] ."
@@ -40,7 +40,7 @@ seq_set() {
 
 # from (CLI) args: possibly updates T/W/G/X/Y/Z/ylen/zlen without validations
 process_args() {
-    ylen=0; zlen=0; local state=t; local seq_out; local a
+    ylen=0; zlen=0; local state=g; local seq_out; local a
     for a in "$@"; do
         case "$a" in
         -[twgxyz]) state=${a#-}; continue;;
