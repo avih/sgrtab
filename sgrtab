@@ -38,7 +38,7 @@ seq_set() {
     seq_out="${seq_out#;}"  # strip leading ';' from first concat
 }
 
-# from (CLI) args: possibly updates T/W/G/X/Y/Z/ylen/zlen without validations
+# from (CLI) args: possibly update T/W/G/X/Y/Z/ylen/zlen with minimal validation
 process_args() {
     ylen=0; zlen=0; local state=g; local seq_out; local a
     for a in "$@"; do
@@ -55,6 +55,7 @@ process_args() {
           z|Z) Z="$Z $a";;
         esac
     done
+    case "$W$G$X$Y$Z" in *[!0-9\ \;-]*) echo Invalid arguments; exit 1; esac
     seq_set $G; G="$seq_out"
     has $X || X=-;  has $Y || Y=-;  has $Z || Z=-;  # be nice.
     for a in $Y; do [ ${#a} -gt $ylen ] && ylen=${#a}; done
