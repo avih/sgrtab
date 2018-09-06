@@ -22,19 +22,24 @@ combinations of different attributes (bold, dim, underline, etc).
 All this while keeping the table nicely aligned and being reasonably quick.
 
 ```
-Usage: sgrtab [[-g] g1..] [--256] [--true] [-t txt [-w W]] [-[xXyYzZ] s1..] ...
-  --256: display the 256 colors palette, ignore other arguments except -g.
- --true: display a true-color surface, ignore other arguments except -g, -t.
-   Else: display standard/custom table of terminal colors:
+Usage: sgrtab [[-g] G1..] [-m MODE] [-t TXT [-w W]] [-[xXyYzZ] S1..] ...
+Display terminal colors (SGR sequences) in various modes.
+  MODE : table(default)/256/true/info
+  G1.. : Global individual SGR modifiers added to all table cells.
+
+-m MODE or --MODE:
+  256  : 256 colors indexed palette (accepts -g, ignores others).
+  true : true-colors surface (accepts -[gt], ignores others).
+  info : attributes and their SGR codes (accepts -[gty], ignores others).
+  table: (default) display standard/custom table of terminal colors:
    - The Z axis repeats each row with the different z values.
    - Default: X: 40-47 (bg colors), Y: 30-37 (fg), Z: -/1 (normal/bold).
 
-g1..  : Global individual SGR modifiers added to all table cells.
-txt   : Sample text. The default is ' gYw ', or ' ' with --true.
+TXT   : Sample text. The default is ' gYw ', or ' ' with mode 'true'.
 W     : On-screen width of txt (work around locale/alignment issues).
-s1..  : Axis SGR sequences. Use '-' as an empty sequence.
--[xyz]: s1 s2 ... are added to the axis. -[XYZ]: replace axis values.
-Each cell uses an SGR sequence of: [x-seq][y-seq][z-seq][g1;g2...] .
+S1..  : Axis SGR sequences. Use '-' as an empty sequence.
+-[xyz]: S1 S2 ... are added to the axis. -[XYZ]: replace axis values.
+Each cell uses an SGR sequence of: [x-seq][y-seq][z-seq][G1;G2...] .
 Example: sgrtab -g 3 -y 7 '33;7' -X '- 2 4 48;5;40'
          > global italic (3), two extra rows (-y), four columns (-X).
 ```
@@ -44,4 +49,8 @@ POSIX compliant.
 
 # Screenshots
 
+## Default mode (`table`)
 ![sgrtab screenshots using xterm](https://raw.githubusercontent.com/avih/auxiliary/master/images/sgrtab/sgrtab-examples.png)
+
+## Other modes: `--info`, `--256`, `--true`
+![sgrtab screenshots using xterm](https://raw.githubusercontent.com/avih/auxiliary/master/images/sgrtab/sgrtab-info-256-true.png)

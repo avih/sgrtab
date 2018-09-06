@@ -3,19 +3,24 @@
 # Copyright 2017, Avi Halachmi  https://github.com/avih/sgrtab  License: MIT.
 
 if [ "$1" = '-h' ] || [ "$1" = '--help' ]; then
-    echo "Usage: $(basename "$0") [[-g] g1..] [--256] [--true] [-t txt [-w W]] [-[xXyYzZ] s1..] ..."
-    echo "  --256: display the 256 colors palette, ignore other arguments except -g."
-    echo " --true: display a true-color surface, ignore other arguments except -g, -t."
-    echo "   Else: display standard/custom table of terminal colors:"
+    echo "Usage: $(basename "$0") [[-g] G1..] [-m MODE] [-t TXT [-w W]] [-[xXyYzZ] S1..] ..."
+    echo "Display terminal colors (SGR sequences) in various modes."
+    echo "  MODE : table(default)/256/true/info"
+    echo "  G1.. : Global individual SGR modifiers added to all table cells."
+    echo
+    echo "-m MODE or --MODE:"
+    echo "  256  : 256 colors indexed palette (accepts -g, ignores others)."
+    echo "  true : true-colors surface (accepts -[gt], ignores others)."
+    echo "  info : attributes and their SGR codes (accepts -[gty], ignores others)."
+    echo "  table: (default) display standard/custom table of terminal colors:"
     echo "   - The Z axis repeats each row with the different z values."
     echo "   - Default: X: 40-47 (bg colors), Y: 30-37 (fg), Z: -/1 (normal/bold)."
     echo
-    echo "g1..  : Global individual SGR modifiers added to all table cells."
-    echo "txt   : Sample text. The default is ' gYw ', or ' ' with --true."
+    echo "TXT   : Sample text. The default is ' gYw ', or ' ' with mode 'true'."
     echo "W     : On-screen width of txt (work around locale/alignment issues)."
-    echo "s1..  : Axis SGR sequences. Use '-' as an empty sequence."
-    echo "-[xyz]: s1 s2 ... are added to the axis. -[XYZ]: replace axis values."
-    echo "Each cell uses an SGR sequence of: [x-seq][y-seq][z-seq][g1;g2...] ."
+    echo "S1..  : Axis SGR sequences. Use '-' as an empty sequence."
+    echo "-[xyz]: S1 S2 ... are added to the axis. -[XYZ]: replace axis values."
+    echo "Each cell uses an SGR sequence of: [x-seq][y-seq][z-seq][G1;G2...] ."
     echo "Example: $(basename "$0") -g 3 -y 7 '33;7' -X '- 2 4 48;5;40'"
     echo "         > global italic (3), two extra rows (-y), four columns (-X).";
     exit
@@ -29,7 +34,7 @@ G=     # global modifiers ("g1;g2...")
 W=     # on-screen text width. set if different than ${#T} e.g. maybe for UTF8
 ylen=2 # the widest y sequence, for row-headers alignment. considers ${#G} too
 zlen=2 # widest non-empty z +1, or 0 if empty (empty z headers are suppressed)
-mode=  # empty: SGR combos table, "256" for 256 colors, "true" for true colors
+mode=table  # table/256/true/info
 
 # for SGR. ignore empty or -* args, combine the rest with semicolon delimiter.
 # hot function. sets seq_out rather than printing from a (slow) subshell.
@@ -46,23 +51,29 @@ process_args() {
     ylen=0; zlen=0; local state=g; local seq_out; local a
     for a in "$@"; do
         case "$a" in
-        -[twgxyz]) state=${a#-}; continue;;
-           -[XYZ]) state=${a#-}; eval $state=; continue;;
-            --256) mode=256; continue;;
-           --true) mode=true; T=" "; continue;;
+        -[twgxyzm])
+            state=${a#-}; continue;;
+        -[XYZ])
+            state=${a#-}; eval $state=; continue;;
+        --table|--256|--true|--info)
+            state=m; a=${a#??};;  # fall to the next case..esac
         esac
         case $state in
-            t) T="$a";;
-            w) W="$a";;
+            t) T="$a"; state=g;;
+            w) W="$a"; state=g;;
             g) G="$G $a";;
           x|X) X="$X $a";;
           y|Y) Y="$Y $a";;
           z|Z) Z="$Z $a";;
+            m) mode="$a"
+               [ "$mode" = true ] && T=" "
+               [ "$mode" = info ] && Y=
+               state=g ;;
         esac
     done
     case "$W$G$X$Y$Z" in *[!0-9\ \;-]*) echo Invalid arguments; exit 1; esac
     seq_set $G; G="$seq_out"
-    has $X || X=-;  has $Y || Y=-;  has $Z || Z=-;  # be nice.
+    has $X || X=-;  has $Y || [ $mode = info ] || Y=-;  has $Z || Z=-;  # be nice.
     for a in $Y; do [ ${#a} -gt $ylen ] && ylen=${#a}; done
     for a in $Z; do
         [ "${a##-*}" ] && [ ${#a} -ge $zlen ] && zlen=$((1 + ${#a}))
@@ -80,16 +91,6 @@ print_center() {
     printf "%${pre}s$fmt%${post}s" "" "$@" ""
 }
 
-# $1: from, $2: len, $3: FG color sequence
-print_256_line() {
-    local i=$1
-    while [ $i -lt $(($1+$2)) ]; do
-        printf "\033[$3;48;5;${i}${G:+;$G}m%4s\033[m" $i
-        i=$((i+1))
-    done
-    echo
-}
-
 has() { [ $# -gt 0 ]; }
 print_row_header() { printf " %${ylen}s%${zlen}s" "$1" "${2##-*}"; }
 
@@ -99,6 +100,15 @@ has "$@" && process_args "$@"
 
 case $mode in
 256)
+    # $1: from, $2: len, $3: FG color sequence
+    print_256_line() {
+        local i=$1
+        while [ $i -lt $(($1+$2)) ]; do
+            printf "\033[$3;48;5;${i}${G:+;$G}m%4s\033[m" $i
+            i=$((i+1))
+        done; echo
+    }
+
     print_256_line 0 8 30
     print_256_line 8 8 30
     for from in 16 52 88 124 160 196 34 70 106 142 178 214; do
@@ -108,19 +118,63 @@ case $mode in
     print_256_line 232 12 37
     print_256_line 244 12 30
     ;;
+
 true)
     y=1
     while [ $y -le 16 ]; do
         x=1
         while [ $x -le 64 ]; do
             top=$((256-y*16)); left=$((256-x*4)); bottomright=$((x*2+y*8-1))
-            printf "\033[48;2;${top};${left};${bottomright}${G:+;$G}m$T\033[m"
+            printf "\033[48;2;${top};${left};${bottomright}${G:+;$G}m%s\033[m" "$T"
             x=$((x+1))
         done; echo
         y=$((y+1))
     done
     ;;
-*)
+
+info)
+    # $1: title, $1: X axis, $2: SGR code[s] to append
+    print_var_line() {
+        printf "%${ylen}s " "$1"; shift
+        for x in - 30 31 32 33 34 35 36 37; do
+            seq_set $* $x $G
+            printf "\033[%sm%s\033[m" "$seq_out" "$T"
+            i=$((i+1))
+        done; echo
+    }
+
+    # blink(5) and bright fg/bg (90-97,100-107) should be be used, so we don't
+    ylen=28
+    print_var_line "Normal"
+    print_var_line "Bold (1)" 1
+    print_var_line "Inverse (7)" 7
+    print_var_line "Bold + Inverse (1;7)" "1;7"
+    print_var_line "Italic (3)" 3
+    print_var_line "Underline (4)" 4
+    print_var_line "Crossed-out (9)" 9
+    print_var_line "Dim (2)" 2
+    print_var_line "Conceal (8)" 8
+
+    printf "%${ylen}s " "256 colors (38/48;5;N)"
+    i=0;
+    while [ $i -lt 45 ]; do
+        printf "\033[48;5;$((16 + 6 + i%6*6 + i/8))m \033[m"
+        i=$((i+1))
+    done; echo
+
+    printf "%${ylen}s " "True colors (38/48;2;R;G;B)"
+    i=0;
+    while [ $i -lt 45 ]; do
+        printf "\033[48;2;0;$((255-i*5));$((20+i*5))m \033[m"
+        i=$((i+1))
+    done; echo
+
+    for y in $Y; do
+        print_var_line "($y)" "$y"
+    done
+    ;;
+
+table)
     [ "$G" ] && printf " %$(($ylen + $zlen))s" "+$G" || print_row_header "" ""
     for x in $X; do
         print_center $W ${#x} " %s" $x  # headers line. center narrow headers
@@ -135,4 +189,7 @@ true)
             done; echo
         done
     done
+    ;;
+
+*) >&2 printf "Invalid mode '%s'\n" "$mode"; exit 1
 esac
