@@ -3,13 +3,15 @@
 # Copyright 2017, Avi Halachmi  https://github.com/avih/sgrtab  License: MIT.
 
 if [ "$1" = '-h' ] || [ "$1" = '--help' ]; then
-    echo "Usage: $(basename "$0") [[-g] g1 g2..] [-t txt [-w W]] [-[xXyYzZ] s1 s2..] ..."
-    echo "Display standard/custom table of SGR combinations (terminal colors)."
-    echo "- The Z axis repeats each row with the different z values."
-    echo "- Default: X: 40-47 (bg colors), Y: 30-37 (fg), Z: -/1 (normal/bold)."
+    echo "Usage: $(basename "$0") [[-g] g1..] [--256] [--true] [-t txt [-w W]] [-[xXyYzZ] s1..] ..."
+    echo "  --256: display the 256 colors palette, ignore other arguments except -g."
+    echo " --true: display a true-color surface, ignore other arguments except -g, -t."
+    echo "   Else: display standard/custom table of terminal colors:"
+    echo "   - The Z axis repeats each row with the different z values."
+    echo "   - Default: X: 40-47 (bg colors), Y: 30-37 (fg), Z: -/1 (normal/bold)."
     echo
     echo "g1..  : Global individual SGR modifiers added to all table cells."
-    echo "txt   : Sample text. The default is ' gYw '."
+    echo "txt   : Sample text. The default is ' gYw ', or ' ' with --true."
     echo "W     : On-screen width of txt (work around locale/alignment issues)."
     echo "s1..  : Axis SGR sequences. Use '-' as an empty sequence."
     echo "-[xyz]: s1 s2 ... are added to the axis. -[XYZ]: replace axis values."
@@ -27,6 +29,7 @@ G=     # global modifiers ("g1;g2...")
 W=     # on-screen text width. set if different than ${#T} e.g. maybe for UTF8
 ylen=2 # the widest y sequence, for row-headers alignment. considers ${#G} too
 zlen=2 # widest non-empty z +1, or 0 if empty (empty z headers are suppressed)
+mode=  # empty: SGR combos table, "256" for 256 colors, "true" for true colors
 
 # for SGR. ignore empty or -* args, combine the rest with semicolon delimiter.
 # hot function. sets seq_out rather than printing from a (slow) subshell.
@@ -45,6 +48,8 @@ process_args() {
         case "$a" in
         -[twgxyz]) state=${a#-}; continue;;
            -[XYZ]) state=${a#-}; eval $state=; continue;;
+            --256) mode=256; continue;;
+           --true) mode=true; T=" "; continue;;
         esac
         case $state in
             t) T="$a";;
@@ -75,6 +80,16 @@ print_center() {
     printf "%${pre}s$fmt%${post}s" "" "$@" ""
 }
 
+# $1: from, $2: len, $3: FG color sequence
+print_256_line() {
+    local i=$1
+    while [ $i -lt $(($1+$2)) ]; do
+        printf "\033[$3;48;5;${i}${G:+;$G}m%4s\033[m" $i
+        i=$((i+1))
+    done
+    echo
+}
+
 has() { [ $# -gt 0 ]; }
 print_row_header() { printf " %${ylen}s%${zlen}s" "$1" "${2##-*}"; }
 
@@ -82,17 +97,42 @@ print_row_header() { printf " %${ylen}s%${zlen}s" "$1" "${2##-*}"; }
 has "$@" && process_args "$@"
 [ "$W" ] || W=${#T}
 
-[ "$G" ] && printf " %$(($ylen + $zlen))s" "+$G" || print_row_header "" ""
-for x in $X; do
-    print_center $W ${#x} " %s" $x  # headers line. center narrow headers
-done; echo
-
-for y in $Y; do
-    for z in $Z; do
-        print_row_header $y $z
-        for x in $X; do
-            seq_set $x $y $z $G
-            print_center ${#x} $W " \033[%sm%s\033[m" "$seq_out" "$T"
-        done; echo
+case $mode in
+256)
+    print_256_line 0 8 30
+    print_256_line 8 8 30
+    for from in 16 52 88 124 160 196 34 70 106 142 178 214; do
+        case $from in 16|52|88|124|160|196) fg=37;; *) fg=30; esac
+        print_256_line $from 18 $fg
     done
-done
+    print_256_line 232 12 37
+    print_256_line 244 12 30
+    ;;
+true)
+    y=1
+    while [ $y -le 16 ]; do
+        x=1
+        while [ $x -le 64 ]; do
+            top=$((256-y*16)); left=$((256-x*4)); bottomright=$((x*2+y*8-1))
+            printf "\033[48;2;${top};${left};${bottomright}${G:+;$G}m$T\033[m"
+            x=$((x+1))
+        done; echo
+        y=$((y+1))
+    done
+    ;;
+*)
+    [ "$G" ] && printf " %$(($ylen + $zlen))s" "+$G" || print_row_header "" ""
+    for x in $X; do
+        print_center $W ${#x} " %s" $x  # headers line. center narrow headers
+    done; echo
+
+    for y in $Y; do
+        for z in $Z; do
+            print_row_header $y $z
+            for x in $X; do
+                seq_set $x $y $z $G
+                print_center ${#x} $W " \033[%sm%s\033[m" "$seq_out" "$T"
+            done; echo
+        done
+    done
+esac

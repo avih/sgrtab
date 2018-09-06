@@ -22,13 +22,15 @@ combinations of different attributes (bold, dim, underline, etc).
 All this while keeping the table nicely aligned and being reasonably quick.
 
 ```
-Usage: sgrtab [[-g] g1 g2..] [-t txt [-w W]] [-[xXyYzZ] s1 s2..] ...
-Display standard/custom table of SGR combinations (terminal colors).
-- The Z axis repeats each row with the different z values.
-- Default: X: 40-47 (bg colors), Y: 30-37 (fg), Z: -/1 (normal/bold).
+Usage: sgrtab [[-g] g1..] [--256] [--true] [-t txt [-w W]] [-[xXyYzZ] s1..] ...
+  --256: display the 256 colors palette, ignore other arguments except -g.
+ --true: display a true-color surface, ignore other arguments except -g, -t.
+   Else: display standard/custom table of terminal colors:
+   - The Z axis repeats each row with the different z values.
+   - Default: X: 40-47 (bg colors), Y: 30-37 (fg), Z: -/1 (normal/bold).
 
 g1..  : Global individual SGR modifiers added to all table cells.
-txt   : Sample text. The default is ' gYw '.
+txt   : Sample text. The default is ' gYw ', or ' ' with --true.
 W     : On-screen width of txt (work around locale/alignment issues).
 s1..  : Axis SGR sequences. Use '-' as an empty sequence.
 -[xyz]: s1 s2 ... are added to the axis. -[XYZ]: replace axis values.
