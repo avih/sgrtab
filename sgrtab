@@ -109,14 +109,17 @@ case $mode in
         done; echo
     }
 
-    print_256_line 0 8 30
-    print_256_line 8 8 30
+    black="38;5;16"
+    white="38;5;231"
+
+    print_256_line 0 8 $black
+    print_256_line 8 8 $black
     for from in 16 52 88 124 160 196 34 70 106 142 178 214; do
-        case $from in 16|52|88|124|160|196) fg=37;; *) fg=30; esac
+        case $from in 16|52|88|124|160|196) fg=$white;; *) fg=$black; esac
         print_256_line $from 18 $fg
     done
-    print_256_line 232 12 37
-    print_256_line 244 12 30
+    print_256_line 232 12 $white
+    print_256_line 244 12 $black
     ;;
 
 true)
