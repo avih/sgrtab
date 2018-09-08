@@ -136,7 +136,7 @@ true)
     ;;
 
 info)
-    # $1: title, $1: X axis, $2: SGR code[s] to append
+    # $1: title, $2...: SGR code[s] to append
     print_var_line() {
         printf "%${ylen}s " "$1"; shift
         for x in - 30 31 32 33 34 35 36 37; do
@@ -161,14 +161,14 @@ info)
     printf "%${ylen}s " "256 colors (38/48;5;N)"
     i=0;
     while [ $i -lt 45 ]; do
-        printf "\033[48;5;$((16 + 6 + i%6*6 + i/8))m \033[m"
+        printf "\033[48;5;$((16 + 6 + i%6*6 + i/8))${G:+;$G}mx\033[m"
         i=$((i+1))
     done; echo
 
     printf "%${ylen}s " "True colors (38/48;2;R;G;B)"
     i=0;
     while [ $i -lt 45 ]; do
-        printf "\033[48;2;0;$((255-i*5));$((20+i*5))m \033[m"
+        printf "\033[48;2;$((255-i*5));0;$((20+i*5))${G:+;$G}mx\033[m"
         i=$((i+1))
     done; echo
 
