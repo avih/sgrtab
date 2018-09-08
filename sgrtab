@@ -39,18 +39,18 @@ mode=table  # table/256/true/info
 # for SGR. ignore empty or -* args, combine the rest with semicolon delimiter.
 # hot function. sets seq_out rather than printing from a (slow) subshell.
 seq_set() {
-    seq_out=""; local c
-    for c in "$@"; do
+    seq_out=; local c
+    for c; do
         [ "${c##-*}" ] && seq_out="$seq_out;$c"
-    done;
+    done
     seq_out="${seq_out#;}"  # strip leading ';' from first concat
 }
 
 # from (CLI) args: possibly update T/W/G/X/Y/Z/ylen/zlen with minimal validation
 process_args() {
     ylen=0; zlen=0; local state=g; local seq_out; local a
-    for a in "$@"; do
-        case "$a" in
+    for a; do
+        case $a in
         -[twgxyzm])
             state=${a#-}; continue;;
         -[XYZ])
@@ -59,17 +59,17 @@ process_args() {
             state=m; a=${a#??};;  # fall to the next case..esac
         esac
         case $state in
-            t) T="$a"; state=g;;
-            w) W="$a"; state=g;;
+            t) T="$a";;
+            w) W="$a";;
             g) G="$G $a";;
           x|X) X="$X $a";;
           y|Y) Y="$Y $a";;
           z|Z) Z="$Z $a";;
-            m) mode="$a"
+            m) mode=$a
                [ "$mode" = true ] && T=" "
-               [ "$mode" = info ] && Y=
-               state=g ;;
+               [ "$mode" = info ] && Y= ;;
         esac
+        case $state in t|w|m) state=g; esac  # one arg, back to -g
     done
     case "$W$G$X$Y$Z" in *[!0-9\ \;-]*) echo Invalid arguments; exit 1; esac
     seq_set $G; G="$seq_out"
