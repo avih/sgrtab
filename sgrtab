@@ -157,17 +157,20 @@ info)
     print_var_line "Dim (2)" 2
     print_var_line "Conceal (8)" 8
 
+    v2q() { q=$(($1<48 ? 0 : $1<115 ? 1 : ($1-35)/40  )); }  # 0-255 -> 0-5
     printf "%${ylen}s " "256 colors (38/48;5;N)"
     i=0;
     while [ $i -lt 45 ]; do
-        printf "\033[48;5;$((16 + 6 + i%6*6 + i/8))${G:+;$G}mx\033[m"
+        v2q $((255-i*5)); r=$q
+        v2q $((20+i*5));  b=$q
+        printf "\033[48;5;$((16 + 36*r + 6*0 + b))${G:+;$G}m \033[m"
         i=$((i+1))
     done; echo
 
     printf "%${ylen}s " "True colors (38/48;2;R;G;B)"
     i=0;
     while [ $i -lt 45 ]; do
-        printf "\033[48;2;$((255-i*5));0;$((20+i*5))${G:+;$G}mx\033[m"
+        printf "\033[48;2;$((255-i*5));0;$((20+i*5))${G:+;$G}m \033[m"
         i=$((i+1))
     done; echo
 
