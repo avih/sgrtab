@@ -39,7 +39,7 @@ mode=table  # table/256/true/info
 # for SGR. ignore empty or -* args, combine the rest with semicolon delimiter.
 # hot function. sets seq_out rather than printing from a (slow) subshell.
 seq_set() {
-    seq_out=; local c
+    seq_out=
     for c; do
         [ "${c##-*}" ] && seq_out="$seq_out;$c"
     done
@@ -48,7 +48,7 @@ seq_set() {
 
 # from (CLI) args: possibly update T/W/G/X/Y/Z/ylen/zlen with minimal validation
 process_args() {
-    ylen=0; zlen=0; local state=g; local seq_out; local a
+    ylen=0 zlen=0 state=g
     for a; do
         case $a in
         -[twgxyzm])
@@ -85,9 +85,9 @@ process_args() {
 print_center() {
     [ $1 -le $2 ] && shift 2 && printf "$@" && return
 
-    local post=$(( ($1 - $2) / 2 ))  # post is smaller if non-even
-    local pre=$(( $1 - $post - $2 ))
-    local fmt="$3"; shift 3
+    post=$(( ($1 - $2) / 2 ))  # post is smaller if non-even
+    pre=$(( $1 - $post - $2 ))
+    fmt="$3"; shift 3
     printf "%${pre}s$fmt%${post}s" "" "$@" ""
 }
 
@@ -102,7 +102,7 @@ case $mode in
 256)
     # $1: from, $2: len, $3: FG color sequence
     print_256_line() {
-        local i=$1
+        i=$1
         while [ $i -lt $(($1+$2)) ]; do
             printf "\033[$3;48;5;${i}${G:+;$G}m%4s\033[m" $i
             i=$((i+1))
@@ -142,7 +142,6 @@ info)
         for x in - 30 31 32 33 34 35 36 37; do
             seq_set $* $x $G
             printf "\033[%sm%s\033[m" "$seq_out" "$T"
-            i=$((i+1))
         done; echo
     }
 

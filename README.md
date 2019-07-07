@@ -3,8 +3,8 @@ Display standard/custom table of SGR combinations (terminal colors)
 
 https://github.com/avih/sgrtab
 
-`sgrtab` is a small shell script(1) which renders a standard or custom table of
-SGR combinations - _Select Graphic Rendition_ terminal codes.
+`sgrtab` is a POSIX-compliant shell script which renders a standard or custom
+table of SGR combinations - _Select Graphic Rendition_ terminal codes.
 
 By default it renders the standard table with ` gYw ` using all the colors,
 i.e. columns (X) are the different background colors, rows (Y) are different
@@ -44,8 +44,6 @@ Example: sgrtab -g 3 -y 7 '33;7' -X '- 2 4 48;5;40'
          > global italic (3), two extra rows (-y), four columns (-X).
 ```
 
-(1) Other than the use of `local` for function variables, it should also be
-POSIX compliant.
 
 # Screenshots
 
