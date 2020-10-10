@@ -97,16 +97,18 @@ print_row_header() { printf " %${ylen}s%${zlen}s" "$1" "${2##-*}"; }
 # -- main --
 has "$@" && process_args "$@"
 [ "$W" ] || W=${#T}
+echo() { printf %s\\n ${1+"$*"}; }
 
 case $mode in
-256)
+256) ESC=$(printf \\033)
     # $1: from, $2: len, $3: FG color sequence
     print_256_line() {
-        i=$1
+        i=$1 out=
         while [ $i -lt $(($1+$2)) ]; do
-            printf "\033[$3;48;5;${i}${G:+;$G}m%4s\033[m" $i
+            case ${#i} in 1) pad="  ";; 2) pad=" ";; 3) pad=; esac
+            out=$out"$ESC[$3;48;5;${i}${G:+;$G}m $pad$i$ESC[m"
             i=$((i+1))
-        done; echo
+        done; echo "$out"
     }
 
     black="38;5;16"
@@ -122,27 +124,28 @@ case $mode in
     print_256_line 244 12 $black
     ;;
 
-true)
+true) ESC=$(printf \\033)
     y=1
     while [ $y -le 16 ]; do
-        x=1
+        x=1 out=
         while [ $x -le 64 ]; do
             top=$((256-y*16)); left=$((256-x*4)); bottomright=$((x*2+y*8-1))
-            printf "\033[48;2;${top};${left};${bottomright}${G:+;$G}m%s\033[m" "$T"
+            out=$out"$ESC[48;2;${top};${left};${bottomright}${G:+;$G}m$T$ESC[m"
             x=$((x+1))
-        done; echo
+        done; echo "$out"
         y=$((y+1))
     done
     ;;
 
-info)
+info) ESC=$(printf \\033)
     # $1: title, $2...: SGR code[s] to append
     print_var_line() {
         printf "%${ylen}s " "$1"; shift
+        out=
         for x in - 30 31 32 33 34 35 36 37; do
             seq_set $* $x $G
-            printf "\033[%sm%s\033[m" "$seq_out" "$T"
-        done; echo
+            out=$out"$ESC[${seq_out}m$T$ESC[m"
+        done; echo "$out"
     }
 
     # blink(5) and bright fg/bg (90-97,100-107) should be be used, so we don't
@@ -159,20 +162,20 @@ info)
 
     v2q() { q=$(($1<48 ? 0 : $1<115 ? 1 : ($1-35)/40  )); }  # 0-255 -> 0-5
     printf "%${ylen}s " "256 colors (38/48;5;N)"
-    i=0;
+    i=0 out=
     while [ $i -lt 45 ]; do
         v2q $((255-i*5)); r=$q
         v2q $((20+i*5));  b=$q
-        printf "\033[48;5;$((16 + 36*r + 6*0 + b))${G:+;$G}m \033[m"
+        out=$out"$ESC[48;5;$((16 + 36*r + 6*0 + b))${G:+;$G}m $ESC[m"
         i=$((i+1))
-    done; echo
+    done; echo "$out"
 
     printf "%${ylen}s " "True colors (38/48;2;R;G;B)"
-    i=0;
+    i=0 out=
     while [ $i -lt 45 ]; do
-        printf "\033[48;2;$((255-i*5));0;$((20+i*5))${G:+;$G}m \033[m"
+        out=$out"$ESC[48;2;$((255-i*5));0;$((20+i*5))${G:+;$G}m $ESC[m"
         i=$((i+1))
-    done; echo
+    done; echo "$out"
 
     for y in $Y; do
         print_var_line "($y)" "$y"
