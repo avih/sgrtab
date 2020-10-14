@@ -106,7 +106,7 @@ case $mode in
         i=$1 out=
         while [ $i -lt $(($1+$2)) ]; do
             case ${#i} in 1) pad="  ";; 2) pad=" ";; 3) pad=; esac
-            out=$out"$ESC[$3;48;5;${i}${G:+;$G}m $pad$i$ESC[m"
+            out=$out"$ESC[$3m$ESC[48;5;${i}m${G:+$ESC[${G}m} $pad$i$ESC[m"
             i=$((i+1))
         done; echo "$out"
     }
@@ -130,7 +130,7 @@ true) ESC=$(printf \\033)
         x=1 out=
         while [ $x -le 64 ]; do
             top=$((256-y*16)); left=$((256-x*4)); bottomright=$((x*2+y*8-1))
-            out=$out"$ESC[48;2;${top};${left};${bottomright}${G:+;$G}m$T$ESC[m"
+            out=$out"$ESC[48;2;${top};${left};${bottomright}m${G:+$ESC[${G}m}$T$ESC[m"
             x=$((x+1))
         done; echo "$out"
         y=$((y+1))
